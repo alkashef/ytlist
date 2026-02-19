@@ -128,8 +128,8 @@ def main():
     ap = argparse.ArgumentParser(description="Export YouTube channel regular videos to CSV (no Shorts, no livestreams).")
     ap.add_argument("channel_url", nargs="?", default=os.environ.get("DEFAULT_CHANNEL"), help="Channel URL: https://www.youtube.com/@handle or https://www.youtube.com/channel/UCxxxx (default: DEFAULT_CHANNEL from env)")
     ap.add_argument("--key", default=os.environ.get("YOUTUBE_API_KEY"), help="YouTube Data API key (or env YOUTUBE_API_KEY)")
-    ap.add_argument("--out", default="-", help="Output CSV path (default: stdout)")
-    ap.add_argument("--min-duration", type=int, default=61, help="Minimum duration in seconds (default: 61)")
+    ap.add_argument("--out", default=os.environ.get("DEFAULT_OUT", "-"), help="Output CSV path (default: DEFAULT_OUT from env or stdout)")
+    ap.add_argument("--min-duration", type=int, default=int(os.environ.get("DEFAULT_MIN_DURATION", "61")), help="Minimum duration in seconds (default: DEFAULT_MIN_DURATION from env or 61)")
     args = ap.parse_args()
 
     if not args.key:

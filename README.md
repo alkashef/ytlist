@@ -27,6 +27,8 @@ Create a `config/.env` file in the project directory with your YouTube API key:
 ```env
 YOUTUBE_API_KEY=your_youtube_api_key_here
 DEFAULT_CHANNEL=https://www.youtube.com/@NateBJones
+DEFAULT_OUT=-
+DEFAULT_MIN_DURATION=61
 ```
 
 ⚠️ **IMPORTANT**: The `config/.env` file is listed in `.gitignore` and should **never** be committed to version control. It contains sensitive credentials.
@@ -64,10 +66,12 @@ python ytlist.py CHANNEL_URL --out videos.csv
 
 | Argument | Required | Default | Description |
 |---|---:|---|---|
-| `channel_url` | No | `DEFAULT_CHANNEL` | Channel URL (`/channel/<id>` or `/@<handle>`) |
-| `--key` | Yes* | `YOUTUBE_API_KEY` | API key |
-| `--out` | No | stdout | Output CSV file path |
-| `--min-duration` | No | `61` | Minimum duration (seconds). Videos shorter than this are excluded |
+| `channel_url` |`DEFAULT_OUT` or `-` | Output CSV file path |
+| `--min-duration` | No | `DEFAULT_MIN_DURATION` or `61` | Minimum duration in seconds |
+
+\* Required unless `YOUTUBE_API_KEY` is set in `config/.env`.
+
+All environment variables are defined in `config/.env` and can be customized there Videos shorter than this are excluded |
 
 \* Required unless `YOUTUBE_API_KEY` is set in `config/.env`.
 
