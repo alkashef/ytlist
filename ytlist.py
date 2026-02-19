@@ -19,11 +19,31 @@ if env_file.exists():
 API = "https://www.googleapis.com/youtube/v3"
 
 def http_get(url, params):
+    """Perform an HTTP GET request with query parameters.
+    
+    Args:
+        url: The base URL to make the request to.
+        params: Dictionary of query parameters to include in the request.
+    
+    Returns:
+        dict: Parsed JSON response from the API.
+    """
     qs = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
     with urllib.request.urlopen(f"{url}?{qs}") as r:
         return json.loads(r.read().decode("utf-8"))
 
 def parse_channel_ref(channel_url: str):
+    """Parse a YouTube channel URL and extract the channel identifier.
+    
+    Args:
+        channel_url: YouTube channel URL (e.g., /channel/<id> or /@<handle>).
+    
+    Returns:
+        tuple: A tuple of (kind, value) where kind is either 'id' or 'handle'.
+    
+    Raises:
+        SystemExit: If the channel URL format is not supported.
+    """
     u = urllib.parse.urlparse(channel_url)
     path = u.path.strip("/")
     parts = path.split("/")
@@ -37,6 +57,14 @@ def parse_channel_ref(channel_url: str):
     raise SystemExit("Unsupported channel URL. Use /channel/<id> or /@<handle>.")
 
 def iso8601_duration_to_seconds(dur: str) -> int:
+    """Convert ISO 8601 duration format to seconds.
+    
+    Args:
+        dur: Duration string in ISO 8601 format (e.g., 'PT1H30M45S').
+    
+    Returns:
+        int: Total duration in seconds.
+    """
     m = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", dur)
     if not m:
         return 0
@@ -45,14 +73,19 @@ def iso8601_duration_to_seconds(dur: str) -> int:
     s = int(m.group(3) or 0)
     return h * 3600 + mi * 60 + s
 
-def seconds_to_hhmmss(n: int) -> str:
-    h = n // 3600
-    n %= 3600
-    m = n // 60
-    s = n % 60
-    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-
 def get_channel_id_and_uploads_playlist(api_key: str, channel_url: str):
+    """Retrieve the channel ID and uploads playlist ID for a given channel.
+    
+    Args:
+        api_key: YouTube Data API key.
+        channel_url: YouTube channel URL.
+    
+    Returns:
+        tuple: A tuple of (channel_id, uploads_playlist_id).
+    
+    Raises:
+        SystemExit: If the channel is not found or the API key is invalid.
+    """
     kind, val = parse_channel_ref(channel_url)
 
     params = {"part": "id,contentDetails", "key": api_key}
@@ -70,6 +103,15 @@ def get_channel_id_and_uploads_playlist(api_key: str, channel_url: str):
     return ch["id"], ch["contentDetails"]["relatedPlaylists"]["uploads"]
 
 def iter_upload_video_ids(api_key: str, uploads_playlist_id: str):
+    """Iterate through all video IDs in a channel's uploads playlist.
+    
+    Args:
+        api_key: YouTube Data API key.
+        uploads_playlist_id: Playlist ID for the channel's uploads.
+    
+    Yields:
+        str: Video ID from the uploads playlist.
+    """
     token = None
     while True:
         data = http_get(f"{API}/playlistItems", {
@@ -86,6 +128,15 @@ def iter_upload_video_ids(api_key: str, uploads_playlist_id: str):
             break
 
 def chunks(xs, n=50):
+    """Split an iterable into chunks of a specified size.
+    
+    Args:
+        xs: Iterable to be chunked.
+        n: Size of each chunk (default: 50).
+    
+    Yields:
+        list: Chunk of items from the iterable.
+    """
     buf = []
     for x in xs:
         buf.append(x)
@@ -96,6 +147,18 @@ def chunks(xs, n=50):
         yield buf
 
 def fetch_video_rows(api_key: str, video_ids, min_duration):
+    """Fetch video details and filter based on criteria.
+    
+    Excludes livestreams and videos below the minimum duration (e.g., Shorts).
+    
+    Args:
+        api_key: YouTube Data API key.
+        video_ids: Iterable of video IDs to fetch.
+        min_duration: Minimum video duration in seconds to include.
+    
+    Yields:
+        tuple: A tuple of (title, url, duration_in_minutes, date) for each video.
+    """
     for batch in chunks(video_ids, 50):
         data = http_get(f"{API}/videos", {
             "part": "snippet,contentDetails,liveStreamingDetails",
@@ -122,14 +185,19 @@ def fetch_video_rows(api_key: str, video_ids, min_duration):
             published_at = sn.get("publishedAt") or ""
             date = published_at[:10] if len(published_at) >= 10 else published_at
 
-            yield (title, url, seconds_to_hhmmss(secs), date)
+            yield (title, url, round(secs / 60), date)
 
 def main():
+    """Main function to export YouTube channel videos to CSV.
+    
+    Parses command-line arguments, fetches video data from YouTube API,
+    and writes filtered results to a CSV file (excluding Shorts and livestreams).
+    """
     ap = argparse.ArgumentParser(description="Export YouTube channel regular videos to CSV (no Shorts, no livestreams).")
     ap.add_argument("channel_url", nargs="?", default=os.environ.get("DEFAULT_CHANNEL"), help="Channel URL: https://www.youtube.com/@handle or https://www.youtube.com/channel/UCxxxx (default: DEFAULT_CHANNEL from env)")
     ap.add_argument("--key", default=os.environ.get("YOUTUBE_API_KEY"), help="YouTube Data API key (or env YOUTUBE_API_KEY)")
     ap.add_argument("--out", default=os.environ.get("DEFAULT_OUT", "-"), help="Output CSV path (default: DEFAULT_OUT from env or stdout)")
-    ap.add_argument("--min-duration", type=int, default=int(os.environ.get("DEFAULT_MIN_DURATION", "61")), help="Minimum duration in seconds (default: DEFAULT_MIN_DURATION from env or 61)")
+    ap.add_argument("--min-duration", type=int, default=int(os.environ.get("DEFAULT_MIN_DURATION", "2")) * 60, help="Minimum duration in seconds (default: DEFAULT_MIN_DURATION from env in minutes or 2)")
     args = ap.parse_args()
 
     if not args.key:
@@ -142,7 +210,7 @@ def main():
 
     out_f = sys.stdout if args.out == "-" else open(args.out, "w", newline="", encoding="utf-8")
     w = csv.writer(out_f)
-    w.writerow(["Title", "URL", "Length", "Date"])
+    w.writerow(["Title", "URL", "Length (min)", "Date"])
 
     # Newest-first: uploads playlist is typically newest-first already.
     video_ids = iter_upload_video_ids(args.key, uploads)
