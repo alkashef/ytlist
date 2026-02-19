@@ -7,6 +7,14 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from config/.env
+config_dir = Path(__file__).parent / "config"
+env_file = config_dir / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
 
 API = "https://www.googleapis.com/youtube/v3"
 
@@ -118,7 +126,7 @@ def fetch_video_rows(api_key: str, video_ids, min_duration):
 
 def main():
     ap = argparse.ArgumentParser(description="Export YouTube channel regular videos to CSV (no Shorts, no livestreams).")
-    ap.add_argument("channel_url", help="Channel URL: https://www.youtube.com/@handle or https://www.youtube.com/channel/UCxxxx")
+    ap.add_argument("channel_url", nargs="?", default=os.environ.get("DEFAULT_CHANNEL"), help="Channel URL: https://www.youtube.com/@handle or https://www.youtube.com/channel/UCxxxx (default: DEFAULT_CHANNEL from env)")
     ap.add_argument("--key", default=os.environ.get("YOUTUBE_API_KEY"), help="YouTube Data API key (or env YOUTUBE_API_KEY)")
     ap.add_argument("--out", default="-", help="Output CSV path (default: stdout)")
     ap.add_argument("--min-duration", type=int, default=61, help="Minimum duration in seconds (default: 61)")
@@ -126,6 +134,9 @@ def main():
 
     if not args.key:
         raise SystemExit("Missing API key. Provide --key or set YOUTUBE_API_KEY.")
+
+    if not args.channel_url:
+        raise SystemExit("Missing channel URL. Provide a URL argument or set DEFAULT_CHANNEL.")
 
     _, uploads = get_channel_id_and_uploads_playlist(args.key, args.channel_url)
 

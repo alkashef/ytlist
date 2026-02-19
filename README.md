@@ -1,53 +1,75 @@
-# ytdump (YouTube Channel CSV Exporter)
+# ytlist (YouTube Channel CSV Exporter)
 
 Export all regular videos from a YouTube channel to CSV (title, URL, duration, date), excluding Shorts and livestreams.
 
-- Minimal standalone CLI script (no dependencies)
+- Simple CLI script with minimal dependencies
 - Newest-first ordering
 - Output: `Title, URL, Length, Date`
 
 ## Requirements
 
 - Python 3.9+
-- YouTube Data API v3 key (free)
+- YouTube Data API v3 key
+- `python-dotenv` (for configuration management) 
 
-## Get an API key
+## Setup
 
-1. Open Google Cloud Console
-2. Create a project
-3. Enable **YouTube Data API v3**
-4. Create credentials → **API key**
-5. Copy the key
+### 1. Install dependencies
+
+```bash
+pip install python-dotenv
+```
+
+### 2. Configure API key
+
+Create a `config/.env` file in the project directory with your YouTube API key:
+
+```env
+YOUTUBE_API_KEY=your_youtube_api_key_here
+DEFAULT_CHANNEL=https://www.youtube.com/@NateBJones
+```
+
+⚠️ **IMPORTANT**: The `config/.env` file is listed in `.gitignore` and should **never** be committed to version control. It contains sensitive credentials.
 
 ## Usage
 
-```bash
-python yt_channel_videos.py CHANNEL_URL --key API_KEY --out videos.csv
-```
-
-Examples:
+Once configured, simply run:
 
 ```bash
-python yt_channel_videos.py https://www.youtube.com/@lexfridman --key YOUR_KEY --out videos.csv
+python ytlist.py --out videos.csv
 ```
 
-Using environment variable instead of `--key`:
+This uses the default channel from `config/.env`. 
+
+To use a different channel:
+
+```bash
+python ytlist.py https://www.youtube.com/@lexfridman --out videos.csv
+```
+
+## Alternative: Pass API key via command line
+
+```bash
+python ytlist.py CHANNEL_URL --key YOUR_API_KEY --out videos.csv
+```
+
+## Alternative: Use environment variable
 
 ```bash
 export YOUTUBE_API_KEY="YOUR_KEY"
-python yt_channel_videos.py https://www.youtube.com/@lexfridman --out videos.csv
+python ytlist.py CHANNEL_URL --out videos.csv
 ```
 
 ## Arguments
 
 | Argument | Required | Default | Description |
 |---|---:|---|---|
-| `channel_url` | Yes | — | Channel URL (`/channel/<id>` or `/@<handle>`) |
+| `channel_url` | No | `DEFAULT_CHANNEL` | Channel URL (`/channel/<id>` or `/@<handle>`) |
 | `--key` | Yes* | `YOUTUBE_API_KEY` | API key |
 | `--out` | No | stdout | Output CSV file path |
 | `--min-duration` | No | `61` | Minimum duration (seconds). Videos shorter than this are excluded |
 
-\* Required unless `YOUTUBE_API_KEY` is set.
+\* Required unless `YOUTUBE_API_KEY` is set in `config/.env`.
 
 ## Output format
 
