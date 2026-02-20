@@ -101,26 +101,6 @@ Deep Learning State of the Art,https://www.youtube.com/watch?v=abc123,84,2024-10
 - `https://www.youtube.com/@handle`
 - `https://www.youtube.com/channel/UCxxxx`
 
-## Windows EXE (optional)
-
-Build a Windows executable with PyInstaller **on Windows**:
-
-```bat
-python -m pip install --upgrade pip
-python -m pip install pyinstaller
-pyinstaller --onefile --name ytdump yt_channel_videos.py
-```
-
-EXE output:
-
-- `dist\\ytdump.exe`
-
-Run:
-
-```bat
-dist\\ytdump.exe https://www.youtube.com/@lexfridman --key YOUR_KEY --out videos.csv
-```
-
 ## License
 
 MIT

@@ -214,11 +214,15 @@ def main():
 
     # Newest-first: uploads playlist is typically newest-first already.
     video_ids = iter_upload_video_ids(args.key, uploads)
+    count = 0
     for row in fetch_video_rows(args.key, video_ids, args.min_duration):
         w.writerow(row)
+        count += 1
 
     if out_f is not sys.stdout:
         out_f.close()
+    
+    print(f"Wrote {count} videos to CSV", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
